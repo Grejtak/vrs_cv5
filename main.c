@@ -29,6 +29,8 @@ SOFTWARE.
 
 // premenna na ulozenie hodnoty AD prevodu
 volatile int ADC1_prevod = 0;
+// vlajka na prepinanie medzi formatom vypisu
+volatile unsigned char Format_FLAG = 0;
 
 int main(void) {
 
@@ -62,11 +64,17 @@ int main(void) {
 	while (1) {
 		// blikaj LED frekvenciou na zaklade hodnoty z AD prevodnika
 		blikaj(ADC1_prevod);
-		// konverzia cisla na string
-		sprintf(strADCNum, "%d", ADC1_prevod);
-		// odosli po seriovej linke
-		SendUSART2(strADCNum);
-		SendUSART2("\n\r");
+		// podla vlajky menime format vypisu
+		if(Format_FLAG){
+			SendUSART2("test\n\r");
+		}
+		else{
+			// konverzia cisla na string
+			sprintf(strADCNum, "%d", ADC1_prevod);
+			// odosli po seriovej linke
+			SendUSART2(strADCNum);
+			SendUSART2("\n\r");
+		}
 	}
 	return 0;
 }
@@ -85,6 +93,16 @@ void USART2_IRQHandler(void) {
 	if (USART_GetITStatus(USART2, USART_IT_RXNE) != RESET) {
 		// prijate data
 		pom = USART_ReceiveData(USART2);
+		// ak je prijaty znak 'm'
+		if(pom == 'm'){
+			// zmenime vlajku formatu vypisu na seriovej linke
+			if(Format_FLAG==1){
+				Format_FLAG = 0;
+			}
+			else{
+				Format_FLAG = 1;
+			}
+		}
 		// vynulujeme vlajku prerusenia
 		USART_ClearITPendingBit(USART2, USART_IT_RXNE);
 	}
