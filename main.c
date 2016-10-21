@@ -23,99 +23,106 @@ SOFTWARE.
 */
 
 #include <stddef.h>
-#include <vrs_cv5a.h>
+#include <stdio.h>
 #include "stm32l1xx.h"
+#include "vrs_cv5.h"
 
-int test = 0;
+// premenna na ulozenie hodnoty AD prevodu
+volatile int ADC1_prevod = 0;
 
-// inicializacia pre USART
-/*
-void USART_init(void)
-{
-	// inicializacna struktura pre USART
-	USART_Init(USART1, &USART_InitStructure);
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
-	USART_InitStructure.USART_BaudRate = 9600;
-	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
-	USART_InitStructure.USART_StopBits = USART_StopBits_1;
-	USART_InitStructure.USART_Parity = USART_Parity_No;
-	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
-}
-*/
+int main(void) {
 
-int main(void)
-{
-  /**
-  *  IMPORTANT NOTE!
-  *  See the <system_*.c> file and how/if the SystemInit() function updates 
-  *  SCB->VTOR register. Sometimes the symbol VECT_TAB_SRAM needs to be defined 
-  *  when building the project if code has been located to RAM and interrupts 
-  *  are used. Otherwise the interrupt table located in flash will be used.
-  *  E.g.  SCB->VTOR = 0x20000000;  
-  */
+	  /**
+	  *  IMPORTANT NOTE!
+	  *  See the <system_*.c> file and how/if the SystemInit() function updates
+	  *  SCB->VTOR register. Sometimes the symbol VECT_TAB_SRAM needs to be defined
+	  *  when building the project if code has been located to RAM and interrupts
+	  *  are used. Otherwise the interrupt table located in flash will be used.
+	  *  E.g.  SCB->VTOR = 0x20000000;
+	  */
 
-  /**
-  *  At this stage the microcontroller clock setting is already configured,
-  *  this is done through SystemInit() function which is called from startup
-  *  file (startup_stm32l1xx_hd.s) before to branch to application main.
-  *  To reconfigure the default setting of SystemInit() function, refer to
-  *  system_stm32l1xx.c file
-  */
+	  /**
+	  *  At this stage the microcontroller clock setting is already configured,
+	  *  this is done through SystemInit() function which is called from startup
+	  *  file (startup_stm32l1xx_hd.s) before to branch to application main.
+	  *  To reconfigure the default setting of SystemInit() function, refer to
+	  *  system_stm32l1xx.c file
+	  */
 
-  // zavolame inicializacne funkcie
-  LED_init();
-  NVIC_init();
-  ADC_init();
+	// zavolame inicializacne funkcie
+	LED_init();
+	NVIC_init();
+	USART_init();
+	ADC_init();
 
-  /* Infinite loop */
-  while (1)
-  {
+	// premenna na uchovanie prevedeneho cisla
+	char strADCNum[5];	// max 4095 + '\0'
 
-
-  }
-  return 0;
+	// hlavna slucka programu
+	while (1) {
+		// blikaj LED frekvenciou na zaklade hodnoty z AD prevodnika
+		blikaj(ADC1_prevod);
+		// konverzia cisla na string
+		sprintf(strADCNum, "%d", ADC1_prevod);
+		// odosli po seriovej linke
+		SendUSART2(strADCNum);
+		SendUSART2("\n\r");
+	}
+	return 0;
 }
 
+// funkcia prerusenia z ADC prevodnika
+void ADC1_IRQHandler(void) {
+	if (ADC1->SR & ADC_SR_EOC) {
+		ADC1_prevod = ADC1->DR;
+	}
+}
 
-
-
-
+// funkcia prerusenia USART2
+void USART2_IRQHandler(void) {
+	uint8_t pom = 0;
+	// ak ak sme prijali data
+	if (USART_GetITStatus(USART2, USART_IT_RXNE) != RESET) {
+		// prijate data
+		pom = USART_ReceiveData(USART2);
+		// vynulujeme vlajku prerusenia
+		USART_ClearITPendingBit(USART2, USART_IT_RXNE);
+	}
+}
 
 #ifdef  USE_FULL_ASSERT
 
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *   where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
+ * @brief  Reports the name of the source file and the source line number
+ *   where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
 void assert_failed(uint8_t* file, uint32_t line)
 {
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+	/* User can add his own implementation to report the file name and line number,
+	 ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
 
-  /* Infinite loop */
-  while (1)
-  {
-  }
+	/* Infinite loop */
+	while (1)
+	{
+	}
 }
 #endif
 
 /*
  * Minimal __assert_func used by the assert() macro
  * */
-void __assert_func(const char *file, int line, const char *func, const char *failedexpr)
-{
-  while(1)
-  {}
+void __assert_func(const char *file, int line, const char *func,
+		const char *failedexpr) {
+	while (1) {
+	}
 }
 
 /*
  * Minimal __assert() uses __assert__func()
  * */
-void __assert(const char *file, int line, const char *failedexpr)
-{
-   __assert_func (file, line, NULL, failedexpr);
+void __assert(const char *file, int line, const char *failedexpr) {
+	__assert_func(file, line, NULL, failedexpr);
 }
