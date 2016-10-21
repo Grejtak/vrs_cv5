@@ -24,6 +24,7 @@ SOFTWARE.
 
 #include <stddef.h>
 #include <stdio.h>
+#include <math.h>
 #include "stm32l1xx.h"
 #include "vrs_cv5.h"
 
@@ -59,6 +60,7 @@ int main(void) {
 
 	// premenna na uchovanie prevedeneho cisla
 	char strADCNum[5];	// max 4095 + '\0'
+	char strADCVol[5];	// X.XX + '\0'
 
 	// hlavna slucka programu
 	while (1) {
@@ -66,7 +68,16 @@ int main(void) {
 		blikaj(ADC1_prevod);
 		// podla vlajky menime format vypisu
 		if(Format_FLAG){
-			SendUSART2("test\n\r");
+			// nutny prepocet na vhodny format pre odoslanie
+			float napatie = 3.3*(ADC1_prevod/4095.0);
+			int Ccast = napatie;
+			float zvysok = napatie - Ccast;
+			int Dcast = trunc(zvysok*100);	// pre dve desatinne cisla
+			// konverzia napatia na string
+			sprintf(strADCVol, "%d.%d", Ccast, Dcast);
+			// odosli po seriovej linke
+			SendUSART2(strADCVol);
+			SendUSART2("V\n\r");
 		}
 		else{
 			// konverzia cisla na string
