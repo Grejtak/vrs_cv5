@@ -105,7 +105,7 @@ int main(void) {
 			// spojime stringy
 			strcat(pom_buff, "\n\r");
 			// nastavime konecny index
-		    USART_KONIEC = 6;
+			USART_KONIEC = 6;
 			sprintf(USART_KRUH_BUFFER, pom_buff);
 			if (Zaciatok_FLAG){
 				USART_ITConfig(USART2, USART_IT_TXE, ENABLE);
