@@ -93,8 +93,7 @@ int main(void) {
 			sprintf(USART_KRUH_BUFFER, pom_buff);
 			if (Zaciatok_FLAG){
 				USART_ITConfig(USART2, USART_IT_TXE, ENABLE);
-				//USART_SendData(USART2, USART_KRUH_BUFFER[USART_ZACIATOK]);
-				USART_SendData(USART2, 'c');
+				USART_SendData(USART2, USART_KRUH_BUFFER[USART_ZACIATOK]);
 				Zaciatok_FLAG = 0;
 			}
 		}
@@ -105,14 +104,13 @@ int main(void) {
 			sprintf(pom_buff, strADCNum);
 			// spojime stringy
 			strcat(pom_buff, "\n\r");
-			// odosli po seriovej linke
 			// nastavime konecny index
 		    USART_KONIEC = 6;
-			sprintf(USART_KRUH_BUFFER, pom_buff);		// POZOR POZOR
+			sprintf(USART_KRUH_BUFFER, pom_buff);
 			if (Zaciatok_FLAG){
 				USART_ITConfig(USART2, USART_IT_TXE, ENABLE);
-				//USART_SendData(USART2, USART_KRUH_BUFFER[USART_ZACIATOK]);
-				USART_SendData(USART2, 'm');
+				// odosli po seriovej linke
+				USART_SendData(USART2, USART_KRUH_BUFFER[USART_ZACIATOK]);
 				Zaciatok_FLAG = 0;
 			}
 		}
@@ -131,8 +129,10 @@ void ADC1_IRQHandler(void) {
 void USART2_IRQHandler(void) {
 	uint8_t pom = 0;
 
-// ak ak sme prijali data
+	// ak ak sme prijali data
 	if (USART_GetITStatus(USART2, USART_IT_RXNE) != RESET) {
+		// vynulujeme vlajku prerusenia
+		USART_ClearITPendingBit(USART2, USART_IT_RXNE);
 		// prijate data
 		pom = USART_ReceiveData(USART2);
 		// ak je prijaty znak 'm'
@@ -145,9 +145,9 @@ void USART2_IRQHandler(void) {
 				Format_FLAG = 1;
 			}
 		}
-		// vynulujeme vlajku prerusenia
-		USART_ClearITPendingBit(USART2, USART_IT_RXNE);
+
 	}
+
 	// ak sme odoslali data
 	if (USART_GetITStatus(USART2, USART_IT_TXE) != RESET) {
 		// posunieme smernik
@@ -158,17 +158,7 @@ void USART2_IRQHandler(void) {
 		// posleme dalsi znak
 		// vynulujeme vlajku prerusenia
 		USART_ClearITPendingBit(USART2, USART_IT_TXE);
-		//USART_ClearFlag(USART2, USART_FLAG_TXE);
-		USART_ITConfig(USART2, USART_IT_TXE, DISABLE);
-		//USART_SendData(USART2, USART_KRUH_BUFFER[USART_ZACIATOK]);
-		USART_ITConfig(USART2, USART_IT_TXE, ENABLE);
-		if(Format_FLAG){
-			USART_SendData(USART2, 'c');
-		}
-		else{
-			USART_SendData(USART2, 'm');
-		}
-		// USART_SendData(USART2, 'x');
+		USART_SendData(USART2, USART_KRUH_BUFFER[USART_ZACIATOK]);
 	}
 
 }
