@@ -1,6 +1,9 @@
 #ifndef VRS_CV5_H_
 #define VRS_CV5_H_
 
+#define USART_KRUH_BUFFER_SIZE 32
+#define USART_KRUH_BUFFER_MASK (USART_KRUH_BUFFER_SIZE-1)
+
 // funkcia na inicializaciu LED
 void LED_init(void);
 // zmena frekvencie blikania pomocou AD prevodnika

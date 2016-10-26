@@ -32,6 +32,14 @@ SOFTWARE.
 volatile int ADC1_prevod = 0;
 // vlajka na prepinanie medzi formatom vypisu
 volatile unsigned char Format_FLAG = 0;
+// vlajka na pociatocne odoslanie znaku cez USART
+volatile unsigned char Zaciatok_FLAG = 1;
+
+// odosielaci kruhovy buffer
+volatile char USART_KRUH_BUFFER[USART_KRUH_BUFFER_SIZE];
+//smernik na zaciatocnu a koncovu poziciu
+volatile uint8_t USART_ZACIATOK = 0;
+volatile uint8_t USART_KONIEC = 0;
 
 int main(void) {
 
@@ -61,7 +69,7 @@ int main(void) {
 	// premenna na uchovanie prevedeneho cisla
 	char strADCNum[5];	// max 4095 + '\0'
 	char strADCVol[5];	// X.XX + '\0'
-
+	char pom_buff[8];
 	// hlavna slucka programu
 	while (1) {
 		// blikaj LED frekvenciou na zaklade hodnoty z AD prevodnika
@@ -75,16 +83,38 @@ int main(void) {
 			int Dcast = trunc(zvysok*100);	// pre dve desatinne cisla
 			// konverzia napatia na string
 			sprintf(strADCVol, "%d.%d", Ccast, Dcast);
+			//skopirujeme do pomocneho bufferu
+			sprintf(pom_buff, strADCVol);
+			// spojime stringy
+			strcat(pom_buff, "V\n\r");
+			// nastavime konecny index
+			USART_KONIEC = 7;
 			// odosli po seriovej linke
-			SendUSART2(strADCVol);
-			SendUSART2("V\n\r");
+			sprintf(USART_KRUH_BUFFER, pom_buff);
+			if (Zaciatok_FLAG){
+				USART_ITConfig(USART2, USART_IT_TXE, ENABLE);
+				//USART_SendData(USART2, USART_KRUH_BUFFER[USART_ZACIATOK]);
+				USART_SendData(USART2, 'c');
+				Zaciatok_FLAG = 0;
+			}
 		}
 		else{
 			// konverzia cisla na string
 			sprintf(strADCNum, "%d", ADC1_prevod);
+			//skopirujeme do pomocneho bufferu
+			sprintf(pom_buff, strADCNum);
+			// spojime stringy
+			strcat(pom_buff, "\n\r");
 			// odosli po seriovej linke
-			SendUSART2(strADCNum);
-			SendUSART2("\n\r");
+			// nastavime konecny index
+		    USART_KONIEC = 6;
+			sprintf(USART_KRUH_BUFFER, pom_buff);		// POZOR POZOR
+			if (Zaciatok_FLAG){
+				USART_ITConfig(USART2, USART_IT_TXE, ENABLE);
+				//USART_SendData(USART2, USART_KRUH_BUFFER[USART_ZACIATOK]);
+				USART_SendData(USART2, 'm');
+				Zaciatok_FLAG = 0;
+			}
 		}
 	}
 	return 0;
@@ -100,7 +130,8 @@ void ADC1_IRQHandler(void) {
 // funkcia prerusenia USART2
 void USART2_IRQHandler(void) {
 	uint8_t pom = 0;
-	// ak ak sme prijali data
+
+// ak ak sme prijali data
 	if (USART_GetITStatus(USART2, USART_IT_RXNE) != RESET) {
 		// prijate data
 		pom = USART_ReceiveData(USART2);
@@ -117,6 +148,29 @@ void USART2_IRQHandler(void) {
 		// vynulujeme vlajku prerusenia
 		USART_ClearITPendingBit(USART2, USART_IT_RXNE);
 	}
+	// ak sme odoslali data
+	if (USART_GetITStatus(USART2, USART_IT_TXE) != RESET) {
+		// posunieme smernik
+		USART_ZACIATOK++;
+		if (USART_ZACIATOK == USART_KONIEC+1){
+			USART_ZACIATOK = 0;
+		}
+		// posleme dalsi znak
+		// vynulujeme vlajku prerusenia
+		USART_ClearITPendingBit(USART2, USART_IT_TXE);
+		//USART_ClearFlag(USART2, USART_FLAG_TXE);
+		USART_ITConfig(USART2, USART_IT_TXE, DISABLE);
+		//USART_SendData(USART2, USART_KRUH_BUFFER[USART_ZACIATOK]);
+		USART_ITConfig(USART2, USART_IT_TXE, ENABLE);
+		if(Format_FLAG){
+			USART_SendData(USART2, 'c');
+		}
+		else{
+			USART_SendData(USART2, 'm');
+		}
+		// USART_SendData(USART2, 'x');
+	}
+
 }
 
 #ifdef  USE_FULL_ASSERT
