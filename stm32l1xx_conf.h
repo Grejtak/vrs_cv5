@@ -19,6 +19,7 @@
   ******************************************************************************
   */ 
 
+
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __STM32L1xx_CONF_H
 #define __STM32L1xx_CONF_H

@@ -2,6 +2,7 @@
 #include "stm32l1xx.h"
 #include "vrs_cv5.h"
 
+
 // funkcia na inicializaciu LED
 void LED_init(void)
 {	// inicializacna struktura pre periferiu GPIOA

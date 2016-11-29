@@ -70,6 +70,7 @@ int main(void) {
 	char strADCNum[5];	// max 4095 + '\0'
 	char strADCVol[5];	// X.XX + '\0'
 	char pom_buff[8];
+
 	// hlavna slucka programu
 	while (1) {
 		// blikaj LED frekvenciou na zaklade hodnoty z AD prevodnika
